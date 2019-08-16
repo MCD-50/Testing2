@@ -1,3 +1,5 @@
+import async from "async";
+
 import * as pipeClient from "../client/pipeClient";
 import web3Client from "../client/web3Client";
 
@@ -13,8 +15,8 @@ export const _readFromCsv = async (app) => {
 
 		// const data = await pipeClient.readFile();
 
-		const start = 3400001;
-		const end = 4000000;
+		const start = 1001;
+		const end = 10000;
 
 		pipeClient.readFile((val, index) => {
 			const payloads = {
@@ -22,8 +24,8 @@ export const _readFromCsv = async (app) => {
 				"currencyType": val.code
 			};
 
-			if (index >= start && index<=end) {
-				app.kueClient.create("FETCH_NODE_DETAIL", payloads, { id: payloads.accountAddress }).attempts(constant.config.utils.WITHDRAW_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+			if (index >= start && index <= end) {
+				app.kueClient.create("FETCH_NODE_DETAIL", payloads, { id: payloads.accountAddress }).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
 			}
 
 			if ((index % 1000) == 0) console.log("Index ", index);
@@ -113,34 +115,49 @@ export const _fetchNodeDetail = async (app, job, done) => {
 		// for all non eth currencies
 		if (payload.currencyType != "ETH" && (!constant.coins[payload.currencyType] || !constant.coins[payload.currencyType].contractAddress || !constant.coins[payload.currencyType].decimal)) {
 			return done(new Error("Unable to get erc details"));
-			// if (!constant.coins[payload.currencyType] || !constant.coins[payload.currencyType].contractAddress || !constant.coins[payload.currencyType].decimal) {
-			// }
 		}
 
+		const nonce = await web3Client.estimateNonce(payload.accountAddress);
+		if (nonce == null) return done(new Error("Something wronmg. unable to nonce value"));
+		if (nonce == 0) {
+			// not much important
+			await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { fetched: true });
+			return done();
+		}
 
 		// get ether balance 
 		const ethbalance = await web3Client.getBalance(payload.accountAddress);
 		if (!ethbalance) return done(new Error("Something wronmg. unable to get ethere balance"));
 
-
-		let ercbalance = 0;
 		if (payload.currencyType != "ETH") {
+			let ercbalance = {};
+			const tasks = Object.keys(constant.coins).map(coin => {
+				return async function (callback) {
+					const decimal = constant.coins[coin].decimal;
+					web3Client.initializeContract(constant.coins[coin].contractAddress);
 
-			const decimal = constant.coins[payload.currencyType].decimal;
-			// get erc balance
-			web3Client.initializeContract(constant.coins[payload.currencyType].contractAddress);
+					const _balance = await web3Client.getContractBalance(constant.coins[coin].contractAddress, payload.accountAddress);
+					if (!_balance) return callback(null, null);
+					const coinKey = coin + "Amount";
+					ercbalance[coinKey] = Number(safeMathhelper.convertFromPrecision(_balance, decimal));
+					return callback(null, null);
+				};
+			});
 
-			ercbalance = await web3Client.getContractBalance(constant.coins[payload.currencyType].contractAddress, payload.accountAddress);
-			if (!ercbalance) return done(new Error("Something wronmg. unable to get ethere balance"));
-			ercbalance = safeMathhelper.convertFromPrecision(ercbalance, decimal);
+			async.series(tasks, async (err) => {
+				err && console.log("COIN SERVICE", "Something went wrong in async series", err);
+
+				const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), ...ercbalance, fetched: true });
+				if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+				return done();
+			});
+		} else {
+			// now convert the erc to respective 
+			const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), fetched: true });
+			if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+			return done();
 		}
 
-		// now convert the erc to respective 
-		const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), amount: Number(ercbalance), fetched: true });
-
-		if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
-
-		return done();
 	} catch (exe) {
 		console.log(exe);
 		return done(new Error("Something wronmg"));
