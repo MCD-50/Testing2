@@ -111,6 +111,18 @@ class BlockchainClient {
 		});
 	}
 
+	getTransactionCount(accountAddress) {
+		return new Promise(async (resolve) => {
+			try {
+				await this.web3Client.eth.getTransactionCount(accountAddress)
+					.then(count => resolve(this.resolveResponse({ result: count })))
+					.catch(exe => resolve(null));
+			} catch (exe) {
+				resolve(null);
+			}
+		});
+	}
+
 	getContractBalance(contractAddress, accountAddress) {
 		return new Promise(async (resolve) => {
 			try {
