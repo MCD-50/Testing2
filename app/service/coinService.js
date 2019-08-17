@@ -152,13 +152,12 @@ export const _fetchNodeDetail = async (app, job, done) => {
 				return done();
 			});
 		} 
-		// else {
-		// 	// now convert the erc to respective 
-		// 	const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), fetched: true });
-		// 	if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
-		// 	return done();
-		// }
-
+		else {
+			// now convert the erc to respective 
+			// const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), fetched: true });
+			// if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+			return done();
+		}
 	} catch (exe) {
 		console.log(exe);
 		return done(new Error("Something wronmg"));

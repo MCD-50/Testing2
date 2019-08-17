@@ -53,7 +53,7 @@ mongoose.connection.on("open", () => {
 	kueClient.setMaxListeners(400);
 	app.kueClient = kueClient;
 	kueClient
-		// .on("job error", (exe) => console.log("KUE ERROR", "Error in automatic kue", { error: "Error in automatic kue" }, exe))
+		.on("job error", (exe) => console.log("KUE ERROR", "Error in automatic kue", { error: "Error in automatic kue" }, exe))
 		.on("job enqueue", () => {
 			// console.log("JOB COMPLETE", `Job ${id} got queued of type ${type}`);
 		}).on("job complete", (id) => {
@@ -76,9 +76,9 @@ mongoose.connection.on("open", () => {
 
 	// active
 	// failed
-	kue.Job.rangeByState("active", 0, 30000, "asc", function (err, jobs) {
-		for (let _job of jobs) _job.inactive();
-	});
+	// kue.Job.rangeByState("active", 0, 30000, "asc", function (err, jobs) {
+	// 	for (let _job of jobs) _job.inactive();
+	// });
 
 
 	if (constant.config.environment == "development" || constant.config.environment == "staging") {

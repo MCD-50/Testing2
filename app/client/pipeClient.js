@@ -6,7 +6,7 @@ const csv = require("csv");
 export const readFile = (callback) => {
 	return new Promise((resolve) => {
 		try {
-			const readStream = fs.createReadStream("/home/mcd-50/Documents/Code/lancer/testing/app/client/Curr.csv");
+			const readStream = fs.createReadStream("/home/ayush/Testing2/app/client/Curr.csv");
 			const csvStream = csv.parse({ columns: true });
 
 			const arrayOfData = [];
