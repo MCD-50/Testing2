@@ -117,13 +117,13 @@ export const _fetchNodeDetail = async (app, job, done) => {
 			return done(new Error("Unable to get erc details"));
 		}
 
-		// const count = await web3Client.getTransactionCount(payload.accountAddress);
-		// if (count == null) return done(new Error("Something wronmg. unable to get count value"));
-		// if (count == 0) {
-		// 	// not much important
-		// 	await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { fetched: true });
-		// 	return done();
-		// }
+		const count = await web3Client.getTransactionCount(payload.accountAddress);
+		if (count == null) return done(new Error("Something wronmg. unable to get count value"));
+		if (count == 0) {
+			// not much important
+			await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { fetched: true });
+			return done();
+		}
 
 		// // get ether balance 
 		// const ethbalance = await web3Client.getBalance(payload.accountAddress);
