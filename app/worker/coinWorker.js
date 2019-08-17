@@ -7,7 +7,7 @@ const initWorker = (app) => {
 	
 	// app.kueClient.process("ADD_TO_DB", 10, (job, done) => coinService._addToDb(app, job, done));
 	// app.kueClient.process("PROCESS_FROM_DB", 1, (job, done) => coinService._processFromDb(app, job, done));
-	app.kueClient.process("FETCH_NODE_DETAIL", 500, (job, done) => coinService._fetchNodeDetail(app, job, done));
+	app.kueClient.process("FETCH_NODE_DETAIL", 10, (job, done) => coinService._fetchNodeDetail(app, job, done));
 };
 
 export default initWorker;

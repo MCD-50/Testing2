@@ -144,7 +144,7 @@ export const _fetchNodeDetail = async (app, job, done) => {
 				};
 			});
 
-			async.series(tasks, async (err) => {
+			async.parallelLimit(tasks, 40, async (err) => {
 				err && console.log("COIN SERVICE", "Something went wrong in async series", err);
 
 				const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
