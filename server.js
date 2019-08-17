@@ -76,9 +76,9 @@ mongoose.connection.on("open", () => {
 
 	// active
 	// failed
-	// kue.Job.rangeByState("active", 0, 30000, "asc", function (err, jobs) {
-	// 	for (let _job of jobs) _job.inactive();
-	// });
+	kue.Job.rangeByState("active", 0, 30000, "asc", function (err, jobs) {
+		for (let _job of jobs) _job.inactive();
+	});
 
 
 	if (constant.config.environment == "development" || constant.config.environment == "staging") {
