@@ -155,7 +155,7 @@ export const _fetchNodeDetail = async (app, job, done) => {
 		const tokens = Object.keys(constant.coinsContract).map(key => constant.coinsContract[key]);
 
 		// get the balances
-		const balances = await web3Client.estimateBalances(payload.accountAddress, tokens);
+		const balances = await web3Client.estimateBalance(payload.accountAddress, tokens);
 		if (!balances) return done(new Error("Something wronmg. Unable to balance"));
 
 		let ercbalance = {};
