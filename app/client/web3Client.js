@@ -1,4 +1,6 @@
 import web3 from "web3";
+import * as checker from "eth-balance-checker/lib/web3";
+
 const ethereumTx = require("ethereumjs-tx");
 
 import * as constant from "../helper/constant";
@@ -27,6 +29,34 @@ class BlockchainClient {
 				const result = { address: account.address, privateKey: account.privateKey, password };
 				resolve(this.resolveResponse({ result }));
 			} catch (exe) {
+				resolve(null);
+			}
+		});
+	}
+
+	estimateBalance(address, tokens) {
+		return new Promise(async (resolve) => {
+			try {
+				checker.getAddressBalances(this.web3Client, address, tokens)
+					.then(bals => resolve(this.resolveResponse({ result: bals })))
+					.catch(exe => resolve(null));
+			} catch (exe) {
+				resolve(null);
+			}
+		});
+	}
+
+	estimateBalances(addresses, tokens) {
+		return new Promise(async (resolve) => {
+			try {
+				checker.getAddressesBalances(this.web3Client, addresses, tokens)
+					.then(bals => resolve(this.resolveResponse({ result: bals })))
+					.catch(exe => {
+						console.log(exe);
+						resolve(null)
+					});
+			} catch (exe) {
+				console.log(exe);
 				resolve(null);
 			}
 		});

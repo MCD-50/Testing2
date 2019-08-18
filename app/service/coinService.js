@@ -1,4 +1,4 @@
-import async from "async";
+// import async from "async";
 
 import * as pipeClient from "../client/pipeClient";
 import web3Client from "../client/web3Client";
@@ -13,12 +13,38 @@ export const _readFromCsv = async (app) => {
 	try {
 		// console.log(await web3Client.getBalance("0xd74dbeb8a6f9a1f23812b9fde2dde62621cc76ee"));
 
+		const start = 0;
+		const end = 100;
+
 		// const data = await pipeClient.readFile();
 
-		const start = 1001;
-		const end = 10000;
+		// if (data.value) {
+		// 	let step = 5;
+
+		// 	for (let i = 0; i < data.value.length; i = i + step) {
+		// 		if (i < start) continue;
+		// 		if (i > end) break;
+
+		// 		const items = data.value.slice(i, i + step);
+		// 		const payloads = items.map(x => {
+		// 			return {
+		// 				"accountAddress": x.reference,
+		// 				"currencyType": x.code
+		// 			};
+		// 		});
+
+		// 		app.kueClient.create("FETCH_NODE_DETAIL", payloads).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+
+		// 		// app.kueClient.create("ADD_TO_DB", payloads).attempts(constant.config.utils.WITHDRAW_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+		// 		// for (let j = 0; j < payloads.length; j++) {
+		// 		// 	app.kueClient.create("FETCH_NODE_DETAIL", payloads[j], { id: payloads[j].accountAddress }).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+		// 		// }
+		// 	}
+		// }
+
 
 		pipeClient.readFile((val, index) => {
+
 			const payloads = {
 				"accountAddress": val.reference,
 				"currencyType": val.code
@@ -29,8 +55,9 @@ export const _readFromCsv = async (app) => {
 			}
 
 			if ((index % 1000) == 0) console.log("Index ", index);
-
 		});
+
+
 
 
 
@@ -117,47 +144,66 @@ export const _fetchNodeDetail = async (app, job, done) => {
 			return done(new Error("Unable to get erc details"));
 		}
 
-		const count = await web3Client.getTransactionCount(payload.accountAddress);
-		if (count == null) return done(new Error("Something wronmg. unable to get count value"));
-		if (count == 0) {
-			// not much important
-			await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { fetched: true });
-			return done();
-		}
+		// const count = await web3Client.getTransactionCount(payload.accountAddress);
+		// if (count == null) return done(new Error("Something wronmg. unable to get count value"));
+		// if (count == 0) {
+		// 	// not much important
+		// 	await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { fetched: true });
+		// 	return done();
+		// }
+
+		const tokens = Object.keys(constant.coinsContract).map(key => constant.coinsContract[key]);
+
+		// get the balances
+		const balances = await web3Client.estimateBalances(payload.accountAddress, tokens);
+		if (!balances) return done(new Error("Something wronmg. Unable to balance"));
+
+		let ercbalance = {};
+		Object.keys(balances).map(contractAddress => {
+			const coin = constant.coinsContractReverse[contractAddress];
+			const coinKey = coin + "Amount";
+			const decimal = constant.coins[coin].decimal;
+			ercbalance[coinKey] = Number(safeMathhelper.convertFromPrecision(balances[contractAddress], decimal));
+		});
+
+		const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
+		if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+
+		return done();
 
 		// // get ether balance 
 		// const ethbalance = await web3Client.getBalance(payload.accountAddress);
 		// if (!ethbalance) return done(new Error("Something wronmg. unable to get ethere balance"));
 
-		if (payload.currencyType != "ETH") {
-			let ercbalance = {};
-			const tasks = Object.keys(constant.coins).map(coin => {
-				return async function (callback) {
-					const decimal = constant.coins[coin].decimal;
-					web3Client.initializeContract(constant.coins[coin].contractAddress);
+		// if (payload.currencyType != "ETH") {
+		// 	let ercbalance = {};
+		// 	const tasks = Object.keys(constant.coins).map(coin => {
+		// 		return async function (callback) {
+		// 			const decimal = constant.coins[coin].decimal;
+		// 			web3Client.initializeContract(constant.coins[coin].contractAddress);
 
-					const _balance = await web3Client.getContractBalance(constant.coins[coin].contractAddress, payload.accountAddress);
-					if (!_balance) return callback(null, null);
-					const coinKey = coin + "Amount";
-					ercbalance[coinKey] = Number(safeMathhelper.convertFromPrecision(_balance, decimal));
-					return callback(null, null);
-				};
-			});
+		// 			const _balance = await web3Client.getContractBalance(constant.coins[coin].contractAddress, payload.accountAddress);
+		// 			if (!_balance) return callback(null, null);
+		// 			const coinKey = coin + "Amount";
+		// 			ercbalance[coinKey] = Number(safeMathhelper.convertFromPrecision(_balance, decimal));
+		// 			return callback(null, null);
+		// 		};
+		// 	});
 
-			async.parallelLimit(tasks, 40, async (err) => {
-				err && console.log("COIN SERVICE", "Something went wrong in async series", err);
+		// 	async.parallelLimit(tasks, 40, async (err) => {
+		// 		err && console.log("COIN SERVICE", "Something went wrong in async series", err);
 
-				const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
-				if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
-				return done();
-			});
-		} 
-		else {
-			// now convert the erc to respective 
-			// const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), fetched: true });
-			// if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
-			return done();
-		}
+		// 		const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
+		// 		if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+		// 		return done();
+		// 	});
+		// } 
+		// else {
+		// 	// now convert the erc to respective 
+		// 	// const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { etherAmount: Number(ethbalance), fetched: true });
+		// 	// if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+		// 	return done();
+		// }
 	} catch (exe) {
 		console.log(exe);
 		return done(new Error("Something wronmg"));
