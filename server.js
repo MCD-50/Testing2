@@ -53,7 +53,7 @@ mongoose.connection.on("open", () => {
 	kueClient.setMaxListeners(400);
 	app.kueClient = kueClient;
 	kueClient
-		.on("job error", (exe) => console.log("KUE ERROR", "Error in automatic kue", { error: "Error in automatic kue" }, exe))
+		//.on("job error", (exe) => console.log("KUE ERROR", "Error in automatic kue", { error: "Error in automatic kue" }, exe))
 		.on("job enqueue", () => {
 			// console.log("JOB COMPLETE", `Job ${id} got queued of type ${type}`);
 		}).on("job complete", (id) => {

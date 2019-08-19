@@ -16,46 +16,46 @@ export const _readFromCsv = async (app) => {
 		const start = 0;
 		const end = 100;
 
-		// const data = await pipeClient.readFile();
+		const data = await pipeClient.readFile();
 
-		// if (data.value) {
-		// 	let step = 5;
+		if (data.value) {
+			let step = 5;
 
-		// 	for (let i = 0; i < data.value.length; i = i + step) {
-		// 		if (i < start) continue;
-		// 		if (i > end) break;
+			for (let i = 0; i < data.value.length; i = i + step) {
+				if (i < start) continue;
+				if (i > end) break;
 
-		// 		const items = data.value.slice(i, i + step);
-		// 		const payloads = items.map(x => {
-		// 			return {
-		// 				"accountAddress": x.reference,
-		// 				"currencyType": x.code
-		// 			};
-		// 		});
+				const items = data.value.slice(i, i + step);
+				const payloads = items.map(x => {
+					return {
+						"accountAddress": x.reference,
+						"currencyType": x.code
+					};
+				});
 
-		// 		app.kueClient.create("FETCH_NODE_DETAIL", payloads).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+				app.kueClient.create("FETCH_NODE_DETAIL", payloads).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
 
-		// 		// app.kueClient.create("ADD_TO_DB", payloads).attempts(constant.config.utils.WITHDRAW_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
-		// 		// for (let j = 0; j < payloads.length; j++) {
-		// 		// 	app.kueClient.create("FETCH_NODE_DETAIL", payloads[j], { id: payloads[j].accountAddress }).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
-		// 		// }
-		// 	}
-		// }
-
-
-		pipeClient.readFile((val, index) => {
-
-			const payloads = {
-				"accountAddress": val.reference,
-				"currencyType": val.code
-			};
-
-			if (index >= start && index <= end) {
-				app.kueClient.create("FETCH_NODE_DETAIL", payloads, { id: payloads.accountAddress }).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+				// app.kueClient.create("ADD_TO_DB", payloads).attempts(constant.config.utils.WITHDRAW_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+				// for (let j = 0; j < payloads.length; j++) {
+				// 	app.kueClient.create("FETCH_NODE_DETAIL", payloads[j], { id: payloads[j].accountAddress }).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+				// }
 			}
+		}
 
-			if ((index % 1000) == 0) console.log("Index ", index);
-		});
+
+		// pipeClient.readFile((val, index) => {
+
+		// 	const payloads = {
+		// 		"accountAddress": val.reference,
+		// 		"currencyType": val.code
+		// 	};
+
+		// 	if (index >= start && index <= end) {
+		// 		app.kueClient.create("FETCH_NODE_DETAIL", payloads, { id: payloads.accountAddress }).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+		// 	}
+
+		// 	if ((index % 1000) == 0) console.log("Index ", index);
+		// });
 
 
 
@@ -139,10 +139,13 @@ export const _fetchNodeDetail = async (app, job, done) => {
 	try {
 		const payload = job.data;
 
+		const addresess = payload.map(x => x.accountAddress);
+
+
 		// for all non eth currencies
-		if (payload.currencyType != "ETH" && (!constant.coins[payload.currencyType] || !constant.coins[payload.currencyType].contractAddress || !constant.coins[payload.currencyType].decimal)) {
-			return done(new Error("Unable to get erc details"));
-		}
+		// if (payload.currencyType != "ETH" && (!constant.coins[payload.currencyType] || !constant.coins[payload.currencyType].contractAddress || !constant.coins[payload.currencyType].decimal)) {
+		// 	return done(new Error("Unable to get erc details"));
+		// }
 
 		// const count = await web3Client.getTransactionCount(payload.accountAddress);
 		// if (count == null) return done(new Error("Something wronmg. unable to get count value"));
@@ -154,22 +157,39 @@ export const _fetchNodeDetail = async (app, job, done) => {
 
 		const tokens = Object.keys(constant.coinsContract).map(key => constant.coinsContract[key]);
 
+	
 		// get the balances
-		const balances = await web3Client.estimateBalance(payload.accountAddress, tokens);
+		const balances = await web3Client.estimateBalances(addresess, tokens);
 		if (!balances) return done(new Error("Something wronmg. Unable to balance"));
 
 		let ercbalance = {};
-		Object.keys(balances).map(contractAddress => {
-			const coin = constant.coinsContractReverse[contractAddress];
-			const coinKey = coin + "Amount";
-			const decimal = constant.coins[coin].decimal;
-			ercbalance[coinKey] = Number(safeMathhelper.convertFromPrecision(balances[contractAddress], decimal));
+		Object.keys(balances).map(accountAddress => {
+			ercbalance[accountAddress] = {};
+			Object.keys(balances[accountAddress]).map(contractAddress => {
+				const coin = constant.coinsContractReverse[contractAddress];
+				const coinKey = coin + "Amount";
+				const decimal = constant.coins[coin].decimal;
+				ercbalance[accountAddress][coinKey] = Number(safeMathhelper.convertFromPrecision(balances[accountAddress][contractAddress], decimal));
+			});
 		});
 
-		const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
-		if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
 
-		return done();
+
+		const _promise = Object.keys(ercbalance).map(accountAddress => {
+			return new Promise(async resolve => {
+				// do it async
+				coinRepository._updateItem({ accountAddress: accountAddress }, { ...ercbalance[accountAddress], fetched: true });
+				resolve(null);
+			});
+		});
+
+		// mark job as done
+		Promise.all(_promise).then(val => done());
+
+		// const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
+		// if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
+
+		// return done();
 
 		// // get ether balance 
 		// const ethbalance = await web3Client.getBalance(payload.accountAddress);
