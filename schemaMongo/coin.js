@@ -19,6 +19,7 @@ const schema = {
 		default: 0
 	},
 
+	"ETHAmount": { type: Number, default: 0 },
 	"ADIAmount": { type: Number, default: 0 },
 	"WTCAmount": { type: Number, default: 0 },
 	"BNTAmount": { type: Number, default: 0 },

@@ -13,7 +13,7 @@ export const readFile = (callback) => {
 
 			let count = 0;
 			csvStream.on("data", function (data) {
-				if (data.code == "ETH" || constant.coins[data.code.toUpperCase()] != null) {
+				if (data.code == "ETH") {
 					if (callback) callback(data, count++);
 					else arrayOfData.push(data);
 				}

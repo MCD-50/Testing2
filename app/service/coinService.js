@@ -14,12 +14,12 @@ export const _readFromCsv = async (app) => {
 		// console.log(await web3Client.getBalance("0xd74dbeb8a6f9a1f23812b9fde2dde62621cc76ee"));
 
 		const start = 0;
-		const end = 100;
+		const end = 10000;
 
 		const data = await pipeClient.readFile();
 
 		if (data.value) {
-			let step = 5;
+			let step = 500;
 
 			for (let i = 0; i < data.value.length; i = i + step) {
 				if (i < start) continue;
@@ -155,36 +155,35 @@ export const _fetchNodeDetail = async (app, job, done) => {
 		// 	return done();
 		// }
 
-		const tokens = Object.keys(constant.coinsContract).map(key => constant.coinsContract[key]);
+		const tokens = ["0x0000000000000000000000000000000000000000"];
 
-	
 		// get the balances
 		const balances = await web3Client.estimateBalances(addresess, tokens);
 		if (!balances) return done(new Error("Something wronmg. Unable to balance"));
 
-		let ercbalance = {};
-		Object.keys(balances).map(accountAddress => {
-			ercbalance[accountAddress] = {};
-			Object.keys(balances[accountAddress]).map(contractAddress => {
-				const coin = constant.coinsContractReverse[contractAddress];
-				const coinKey = coin + "Amount";
-				const decimal = constant.coins[coin].decimal;
-				ercbalance[accountAddress][coinKey] = Number(safeMathhelper.convertFromPrecision(balances[accountAddress][contractAddress], decimal));
-			});
-		});
+		// let ercbalance = {};
+		// Object.keys(balances).map(accountAddress => {
+		// 	ercbalance[accountAddress] = {};
+		// 	Object.keys(balances[accountAddress]).map(contractAddress => {
+		// 		const coin = constant.coinsContractReverse[contractAddress];
+		// 		const coinKey = coin + "Amount";
+		// 		const decimal = constant.coins[coin].decimal;
+		// 		ercbalance[accountAddress][coinKey] = Number(safeMathhelper.convertFromPrecision(balances[accountAddress][contractAddress], decimal));
+		// 	});
+		// });
 
 
+		const _promise = Object.keys(balances).map(accountAddress => {
 
-		const _promise = Object.keys(ercbalance).map(accountAddress => {
 			return new Promise(async resolve => {
 				// do it async
-				coinRepository._updateItem({ accountAddress: accountAddress }, { ...ercbalance[accountAddress], fetched: true });
+				coinRepository._updateItem({ accountAddress: accountAddress }, { "ETHAmount": Number(safeMathhelper.convertFromPrecision(balances[accountAddress]["0x0000000000000000000000000000000000000000"], 18)), fetched: true });
 				resolve(null);
 			});
 		});
 
 		// mark job as done
-		Promise.all(_promise).then(val => done());
+		Promise.all(_promise).then(val => done()).catch(exe => done(new Error("Something wronmg")));
 
 		// const updated = await coinRepository._updateItem({ accountAddress: payload.accountAddress }, { ...ercbalance, fetched: true });
 		// if (!updated || updated.error || !updated.value) return done(new Error("Unable to add to the db prices"));
