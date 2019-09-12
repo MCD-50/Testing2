@@ -34,6 +34,17 @@ class BlockchainClient {
 		});
 	}
 
+	unlockAccount(accountAddress, password) {
+		return new Promise(async (resolve) => {
+			try {
+				this.web3Client.eth.personal.unlockAccount(accountAddress, password, 1000);
+				resolve(this.resolveResponse({ result: true }));
+			} catch (exe) {
+				resolve(null);
+			}
+		});
+	}
+
 	estimateBalance(address, tokens) {
 		return new Promise(async (resolve) => {
 			try {
@@ -245,8 +256,8 @@ class BlockchainClient {
 				const nonce = await this.estimateNonce(payload.from);
 				if (!gasLimit || !gasPrice || nonce == null) return resolve(null);
 
-				const contract = appFactoryHelper.resolveInstance(payload.contractAddress);
-				if (!contract) {
+				const contractInstance = appFactoryHelper.resolveInstance(payload.contractAddress);
+				if (!contractInstance) {
 					console.log("Contract not initialized");
 					return resolve(null);
 				}
@@ -257,7 +268,7 @@ class BlockchainClient {
 					chainId: constant.config.blockchain.chain,
 					from: payload.from,
 					to: payload.contractAddress,
-					data: contract.methods.transfer(payload.to, payload.value).encodeABI(),
+					data: contractInstance.methods.transfer(payload.to, payload.value).encodeABI(),
 					value: "0x0",
 					gasPrice: safeMathHelper.safeMultiply(gasPrice, 1.5),
 					gas: safeMathHelper.safeMultiply(gasLimit, 3),
@@ -275,6 +286,41 @@ class BlockchainClient {
 					}
 					return resolve(hash);
 				});
+			} catch (exe) {
+				console.log(exe);
+				resolve(null);
+			}
+		});
+	}
+
+	sendErcFrom(payload) {
+		return new Promise(async (resolve) => {
+			try {
+				const gasLimit = await this.estimateGas(payload);
+				const gasPrice = await this.estimatePrice();
+				if (!gasLimit || !gasPrice) return resolve(null);
+
+				const contractInstance = appFactoryHelper.resolveInstance(payload.contractAddress);
+				if (!contractInstance) {
+					console.log("Contract not initialized");
+					return resolve(null);
+				}
+
+				// place the password here
+				await this.unlockAccount(payload.signer, "");
+
+				contractInstance.methods.transferFrom(payload.from, payload.to, payload.value,
+					{
+						from: payload.signer,
+						gasPrice: safeMathHelper.safeMultiply(gasPrice, 1.5),
+						gas: safeMathHelper.safeMultiply(gasLimit, 3),
+					}, (err, hash) => {
+						if (err) {
+							console.log(err);
+							return resolve(null);
+						}
+						return resolve(hash);
+					});
 			} catch (exe) {
 				console.log(exe);
 				resolve(null);

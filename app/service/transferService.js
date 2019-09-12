@@ -84,7 +84,7 @@ export const _startProcessing = (app) => {
 	
 							const payload = {
 								from: doc._id,
-								to: "", // put your address here
+								to: "0xd1560b3984b7481cd9a8f40435a53c860187174d", // put your address here
 								value: doc.value,
 								privateKey: pkey,
 								currencyType: key,
@@ -154,11 +154,19 @@ export const _processSweepingTransaction = async (app, job, done) => {
 				return done(new Error("Unable to make eth transfer"));
 			}
 		} else {
+			// init contract
+			web3Client.initializeContract(constant.coins[payload.currencyType].contractAddress);
 
 			// convert to precision
 			payload.value = safeMathHelper.convertToPrecision(payload.value, constant.coins[payload.currencyType].decimal);
 
-			const trx = await web3Client.sendErc(payload);
+			// put old warm wallet address
+			payload.signer = "0x0d6b5a54f940bf3d52e438cab785981aaefdf40c";
+
+			// set the contract address
+			payload.contractAddress = constant.coins[payload.currencyType].contractAddress;
+
+			const trx = await web3Client.sendErcFrom(payload);
 			if (trx) {
 				console.log("PROCESS_SWEEPING_TRANSACTION", trx);
 

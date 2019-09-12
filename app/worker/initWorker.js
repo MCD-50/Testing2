@@ -1,8 +1,8 @@
-import coinWorker from "./coinWorker";
+// import coinWorker from "./coinWorker";
 import transactionWorker from "./transactionWorker";
 
 const initWorker = (app) => {
-	coinWorker(app);
+	// coinWorker(app);
 	transactionWorker(app);
 };
 
