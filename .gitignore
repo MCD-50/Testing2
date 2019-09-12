@@ -6,3 +6,6 @@ yarn-error.log
 .vscode/
 configServer.js
 *.csv
+*.json
+*.bson
+dump/

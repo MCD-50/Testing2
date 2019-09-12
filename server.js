@@ -3,14 +3,23 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const mongoose = require("mongoose");
+// const exec = require("child_process").exec;
+// const keythereum = require("keythereum");
 
 const kue = require("kue");
 const kueUI = require("kue-ui-express");
 
+
 const redis = require("redis");
 
+// import async from "async";
 import redisHelper from "./app/helper/redisHelper";
 import initWorker from "./app/worker/initWorker";
+
+// import appFactoryHelper from "./app/helper/appFactoryHelper";
+
+
+// import web3Client from "./app/client/web3Client";
 
 import * as constant from "./app/helper/constant";
 
@@ -37,6 +46,7 @@ mongoose.connection.on("open", () => {
 	// set to mongoose
 	app.mongoClient = mongoose;
 
+	// now run the queries and show results
 
 	//setup redis
 	const redisClient = redis.createClient(constant.config.redisConfig);
@@ -112,8 +122,105 @@ mongoose.connection.on("open", () => {
 		});
 
 		// init workers after 5 sec
-		setTimeout(() => {
+		setTimeout(async () => {
 			kueClient.watchStuckJobs();
+
+
+
+			// const db = appFactoryHelper.resolveInstance("coin");
+
+			// const allCurrencies = Object.keys(constant.coins).concat("ETH");
+			// // [ 'ETH', 'ADI', 'WTC', 'BNT', 'LALA', 'PAY', 'WISH', 'VZT', 'PGTS', 'PRIX', 'XNK', 'NPXS', 'BWT', 'GUSD', 'SUB', 'POE', 'OMG', 'CVC', 'SURE', 'HGT', 'PASS', 'TUSD', 'USDC', 'GAT', 'IND', 'ENJ', 'KNC', 'FXT', 'GVT', 'LTO', 'MRK', 'CFT', 'BLZ', 'CRED', 'SPIKE', 'COSS', 'SNM', 'DRGN', 'QNT', 'UBC', 'LINK', 'FDX', 'UFR', 'AGI', 'MANA', 'KICK', 'UBT', 'COS', 'XDCE', 'DAI', 'ETHOS', 'CS', 'MORE', 'TIG', 'LA', 'MKR', 'CELT', 'BAT', 'DAT', 'LEO', 'JET', 'MCO', 'LRC', 'REQ', 'STORJ', 'H2O', 'FRV', 'TAAS', 'MOD', 'SMDX', 'TEU', 'DDF', 'CAN', 'FYN', 'ITT', 'KIN', 'LAN', 'NOX', 'PGT', 'PIX', 'SENC', 'STX', 'TRAK', 'OPQ', 'VEN', 'QTUM', 'EOS', 'ICX' ]
+
+			// //console.log(Object.keys(constant.PRICES).length, allCurrencies.length);
+
+			// const t = allCurrencies.map(key => {
+			// 	return async function (callback) {
+			// 		// var coinKey = { "key": key + "Amount" };
+			// 		var coinKey = key + "Amount";
+
+
+			// 		const price = constant.PRICES[key];
+
+			// 		exec(`mongodump --db settlement --collection ${coinKey}`, (error, stdout, stderr) => {
+			// 			console.log(stdout);
+			// 			console.log(stderr);
+			// 			if (error !== null) {
+			// 				console.log(`exec error: ${error}`);
+			// 			}
+
+			// 			callback(null, null);
+			// 		});
+
+			// 		// TAAS (2), DDF (1)(2), CAN (1)(2) 
+
+			// 		// // get instance
+			// 		var coll = app.mongoClient.connection.collection(coinKey);
+			// 		var stream = coll.find().stream();
+
+			// 		stream.on("data", function (doc) {
+			// 			coll.update({ _id: doc._id },
+			// 				{ $set: { usd: Number(Number(doc.value) * Number(price)) } }
+			// 			);
+			// 		});
+			// 		stream.on("error", function (err) {
+			// 			console.log(err);
+			// 		});
+			// 		stream.on("end", function () {
+			// 			console.log(coinKey);
+			// 			callback(null, null);
+			// 		});
+
+
+
+			// 		db.aggregate(
+			// 			[
+			// 				{ $match: { [coinKey]: { $gt: 0 } } },
+			// 				{ $group: { _id: null, total: { $sum: "$" + coinKey } } }
+			// 			],
+			// 			(error, value) => {
+			// 				console.log(coinKey, value);
+			// 				callback(null, { error, value });
+			// 			}).allowDiskUse(true);
+
+			// 		var o = {};
+
+			// 		o.map = function () {
+			// 			emit(this.accountAddress, this[coinKey.key]);
+			// 		};
+
+			// 		o.reduce = function (k, vals) {
+			// 			return vals;
+			// 		};
+
+			// 		o.out = {
+			// 			replace: coinKey.key
+			// 		};
+
+			// 		o.scope = {
+			// 			coinKey: coinKey,
+			// 		};
+
+			// 		o.query = {
+			// 			[coinKey.key]: { $gt: 0 },
+			// 			fetched: true
+			// 		};
+
+			// 		db.mapReduce(o, function (err, model, stats) {
+			// 			console.log(err, model);
+			// 			// model.find({}).exec((err, docs) => {
+			// 			// 	console.log(err, docs);
+			// 			// });
+			// 			callback(null, null);
+			// 		});
+			// 	};
+			// });
+
+
+			// async.series(t, (error, results) => {
+			// 	console.log(error, results);
+			// });
+
 			initWorker(app);
 		}, 5 * 1000);
 	});

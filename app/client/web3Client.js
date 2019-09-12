@@ -159,11 +159,15 @@ class BlockchainClient {
 				const contractInstance = appFactoryHelper.resolveInstance(contractAddress);
 				contractInstance.methods.balanceOf(accountAddress).call()
 					.then(balance => {
+						console.log(balance);
 						// console.log("erc", balance.toString());
 						resolve(this.resolveResponse({ result: balance.toString() }));
 					})
-					.catch((exe) => resolve(null));
+					.catch((exe) => {
+						console.log(exe);
+					});
 			} catch (exe) {
+				console.log(exe);
 				resolve(null);
 			}
 		});
@@ -219,7 +223,10 @@ class BlockchainClient {
 				const _strx = "0x" + ethTrx.serialize().toString("hex");
 
 				this.web3Client.eth.sendSignedTransaction(_strx, (err, hash) => {
-					if (err) return resolve(null);
+					if (err) {
+						console.log(err);
+						return resolve(null);
+					}
 					return resolve(hash);
 				});
 			} catch (exe) {
@@ -262,7 +269,10 @@ class BlockchainClient {
 				const _strx = "0x" + ethTrx.serialize().toString("hex");
 
 				this.web3Client.eth.sendSignedTransaction(_strx, (err, hash) => {
-					if (err) return resolve(null);
+					if (err) {
+						console.log(err);
+						return resolve(null);
+					}
 					return resolve(hash);
 				});
 			} catch (exe) {
