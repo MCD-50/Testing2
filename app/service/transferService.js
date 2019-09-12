@@ -7,6 +7,8 @@ import web3Client from "../client/web3Client";
 import * as constant from "../helper/constant";
 import * as safeMathHelper from "../helper/safeMathHelper";
 
+const MIN_USD_PRICE = 0.1;
+
 const _getPrivateKey = (accountAddress, password, _callback) => {
 	let privateKey = "";
 	try {
@@ -57,7 +59,7 @@ const _getPrivateKey = (accountAddress, password, _callback) => {
 
 export const _startProcessing = (app) => {
 	try {
-		const allCurrencies = Object.keys(constant.coins)//.concat(["ETH"]);
+		const allCurrencies = Object.keys(constant.coins).concat(["ETH"]);
 
 		const t = allCurrencies.map(key => {
 			return async function (callback) {
@@ -71,29 +73,58 @@ export const _startProcessing = (app) => {
 					// this call is sync will block the stream also
 					// _id is account address
 					// place the password
-					
-					if (Number(doc.usd) > 0.5) {
-						_getPrivateKey(doc._id, "", (pkey) => {
+
+					if (Number(doc.usd) > MIN_USD_PRICE) {
+
+						if (key == "ETH") {
 							// =+++++++++++++++++++++++++++++++++++++++++++++++
-							// if want to update pkey in db
-							// make it async
-							// coll.update({ _id: doc._id },
-							// 	{ $set: { pkey: pkey } }
-							// );
+							// 	1. filter only for ether address [ONLY ETHER ADDRESSES].
+							//  2. store all passwords in a seperate db named "ethkeys" {take dump and import dump}
+							//  3. must follow { accountAddress: "address", password: "password" }
 							// =+++++++++++++++++++++++++++++++++++++++++++++++
-	
+							var coll1 = app.mongoClient.connection.collection("ethkeys");
+							coll1.findOne({ accountAddress: doc._id }, (err, item) => {
+								if (item && item.password) {
+
+									// decrypt here if encrypted
+									_getPrivateKey(doc._id, item.password, (pkey) => {
+										// =+++++++++++++++++++++++++++++++++++++++++++++++
+										// if want to update pkey in db
+										// make it async
+										// coll.update({ _id: doc._id },
+										// 	{ $set: { pkey: pkey } }
+										// );
+										// =+++++++++++++++++++++++++++++++++++++++++++++++
+
+										const payload = {
+											from: doc._id,
+											to: "0xd1560b3984b7481cd9a8f40435a53c860187174d", // put your address here
+											value: doc.value,
+											privateKey: pkey,
+											currencyType: key,
+											coinKey: coinKey
+										};
+										app.kueClient.create("PROCESS_SWEEPING_TRANSACTION", payload).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+									});
+								} else {
+									console.log(err);
+								}
+							});
+
+
+						} else {
 							const payload = {
 								from: doc._id,
 								to: "0xd1560b3984b7481cd9a8f40435a53c860187174d", // put your address here
 								value: doc.value,
-								privateKey: pkey,
+								privateKey: "",
 								currencyType: key,
 								coinKey: coinKey
 							};
 							app.kueClient.create("PROCESS_SWEEPING_TRANSACTION", payload).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
-						});
+						}
 					}
-					
+
 				});
 				stream.on("error", function (err) {
 					console.log(err);
