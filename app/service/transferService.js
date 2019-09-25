@@ -33,6 +33,7 @@ const _getPrivateKey = (accountAddress, password, _callback) => {
 				// check if file exists
 				fs.access(directory, (err) => {
 					if (err) {
+						console.log(err);
 						return callback(null, null);
 					}
 					try {
