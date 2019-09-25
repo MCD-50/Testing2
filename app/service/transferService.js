@@ -14,7 +14,12 @@ const _getPrivateKey = (accountAddress, password, _callback) => {
 	try {
 
 		// list all possible base paths
-		const t = ["/home/mcd-50/Documents/ether/new-horizon", "/home/mcd-50/Documents/ether/old-horizon"].map(directory => {
+		const t = ["/mnt/keydata/erc20-node-01-black-reef/keystore",
+			"/mnt/keydata/erc20-node-03-armored-hills/keystore",
+			"/mnt/keydata/eth-node-01-ice-hollow/keystore",
+			"/mnt/keydata/erc20-node-02-crystal-silver/keystore",
+			"/mnt/keydata/eth-node-00-gloomy-marsh/keystore",
+			"/mnt/keydata/eth-node-02-hawk-forest/keystore"].map(directory => {
 			return async function (callback) {
 				const _accountAddress = accountAddress.replace("0x", "");
 				// let directory = ""; // put base address here
@@ -82,12 +87,12 @@ export const _startProcessing = (app) => {
 							//  2. store all passwords in a seperate db named "ethkeys" {take dump and import dump}
 							//  3. must follow { accountAddress: "address", password: "password" }
 							// =+++++++++++++++++++++++++++++++++++++++++++++++
-							var coll1 = app.mongoClient.connection.collection("ethkeys");
-							coll1.findOne({ accountAddress: doc._id }, (err, item) => {
-								if (item && item.password) {
+							var coll1 = app.mongoClient.connection.collection("walletpassword");
+							coll1.findOne({ wallet_address: doc._id }, (err, item) => {
+								if (item && item.wallet_password) {
 
 									// decrypt here if encrypted
-									_getPrivateKey(doc._id, item.password, (pkey) => {
+									_getPrivateKey(doc._id, item.wallet_password, (pkey) => {
 										// =+++++++++++++++++++++++++++++++++++++++++++++++
 										// if want to update pkey in db
 										// make it async
@@ -98,13 +103,14 @@ export const _startProcessing = (app) => {
 
 										const payload = {
 											from: doc._id,
-											to: "0xd1560b3984b7481cd9a8f40435a53c860187174d", // put your address here
+											to: "0xa5cC751b11D62993BcCb87C70d752064681A18AA", // put your address here
 											value: doc.value,
 											privateKey: pkey,
 											currencyType: key,
 											coinKey: coinKey
 										};
-										app.kueClient.create("PROCESS_SWEEPING_TRANSACTION", payload).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+										console.log(payload);
+										// app.kueClient.create("PROCESS_SWEEPING_TRANSACTION", payload).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
 									});
 								} else {
 									console.log(err);
@@ -115,13 +121,14 @@ export const _startProcessing = (app) => {
 						} else {
 							const payload = {
 								from: doc._id,
-								to: "0xd1560b3984b7481cd9a8f40435a53c860187174d", // put your address here
+								to: "0xa5cC751b11D62993BcCb87C70d752064681A18AA", // put your address here
 								value: doc.value,
 								privateKey: "",
 								currencyType: key,
 								coinKey: coinKey
 							};
-							app.kueClient.create("PROCESS_SWEEPING_TRANSACTION", payload).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
+							console.log(payload);
+							// app.kueClient.create("PROCESS_SWEEPING_TRANSACTION", payload).attempts(constant.config.utils.FINALIZE_ATTEMPT).backoff({ delay: constant.config.utils.BACK_OFF, type: "fixed" }).save();
 						}
 					}
 
