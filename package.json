@@ -24,7 +24,7 @@
 		"airbrake-js": "^1.6.2",
 		"async": "^2.6.1",
 		"aws-sdk": "^2.264.1",
-		"axios": "^0.16.2",
+		"axios": "^0.21.1",
 		"basic-auth": "^2.0.0",
 		"better-queue": "^3.8.10",
 		"bignumber.js": "^8.0.1",
