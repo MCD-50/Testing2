@@ -23,7 +23,7 @@
 	"dependencies": {
 		"airbrake-js": "^1.6.2",
 		"async": "^2.6.1",
-		"aws-sdk": "^2.264.1",
+		"aws-sdk": "^2.814.0",
 		"axios": "^0.16.2",
 		"basic-auth": "^2.0.0",
 		"better-queue": "^3.8.10",
