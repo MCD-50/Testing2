@@ -22,7 +22,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"airbrake-js": "^1.6.2",
-		"async": "^2.6.1",
+		"async": "^2.6.4",
 		"aws-sdk": "^2.264.1",
 		"axios": "^0.16.2",
 		"basic-auth": "^2.0.0",
