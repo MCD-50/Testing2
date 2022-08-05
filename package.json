@@ -49,7 +49,7 @@
 		"kue-ui-express": "^1.0.2",
 		"md5": "^2.2.1",
 		"moment": "^2.21.0",
-		"mongoose": "^5.5.11",
+		"mongoose": "^5.7.5",
 		"node-cron": "^1.2.1",
 		"pg": "^6.4.2",
 		"pg-hstore": "^2.3.2",
